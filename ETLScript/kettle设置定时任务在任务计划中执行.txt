@@ -1,0 +1,17 @@
+kettle设置定时执行要把kettle启动起来，并且Job为执行状态；通常的做法是把kitchen挂到后台进程。
+Kettle定时功能使用方法如下：
+1.在Job下的start模块，有一个定时功能，可以每日，每周等方式进行定时，对于周期性的ETL，很有帮助。
+2.使用资源库（repository）登录时，默认的用户名和密码是admin/admin。
+3.当job是存放在资源库（一般资源库都使用数据库）中时，使用Kitchen.bat执行job时，需使用如下的命令行：
+
+1
+
+Kitchen.bat /rep kettle /user admin /pass admin /job job名
+
+4.当job没有存放在资源库而存放在文件系统时，使用Kitchen.bat执行job时，需使用如下的命令行：
+
+1
+
+Kitchen.bat /norep /file user-transfer-job.kjb
+
+5.可以使用命令行执行job后，就可以使用windows或linux的任务调度来定时执行任务了。
