@@ -430,7 +430,7 @@
     <created_date>2019/09/01 08:47:02.720</created_date>
     <modified_user>-</modified_user>
     <modified_date>2019/09/01 08:47:02.720</modified_date>
-    <key_for_session_key/>
+    <key_for_session_key>H4sIAAAAAAAAAAMAAAAAAAAAAAA=</key_for_session_key>
     <is_key_private>N</is_key_private>
   </info>
   <notepads>
@@ -496,13 +496,13 @@
   </connection>
   <connection>
     <name>DSPStore</name>
-    <server>127.0.0.1</server>
+    <server>192.168.1.51</server>
     <type>MSSQLNATIVE</type>
     <access>Native</access>
     <database>DSPStore</database>
     <port>1433</port>
     <username>sa</username>
-    <password>Encrypted 2be98afc86aa7f2e4cb79ce10bef2bcdb</password>
+    <password>Encrypted 2be98afc86aa7f2a8aa17aa7ddf80a48b</password>
     <servername/>
     <data_tablespace/>
     <index_tablespace/>
@@ -560,6 +560,94 @@
       <enabled>Y</enabled>
     </hop>
   </order>
+  <step>
+    <name>FETCH WORKFLOW DATA</name>
+    <type>TableInput</type>
+    <description/>
+    <distribute>Y</distribute>
+    <custom_distribution/>
+    <copies>1</copies>
+    <partitioning>
+      <method>none</method>
+      <schema_name/>
+    </partitioning>
+    <connection>DSPStaging</connection>
+    <sql>SELECT
+getdate() inputdate,TALL.WELLNAME,liquidrate,oilrate,watercut,gasrate,GOR,WHP,FLP,WHT,PUMPNAME,STAGES
+FROM
+(select ObjectInstanceName WELLNAME from [DSPStaging].[dbo].[vw_CurrentValues]  where   DataSourceName  IN('Well Test - Prod GOR','ALMS Active Installation')
+GROUP BY ObjectInstanceName)
+TALL
+LEFT JOIN
+(
+SELECT
+ObjectInstanceName WELLNAME,liquidrate,oilrate,watercut,gasrate,GOR,WHP,FLP,WHT
+FROM
+(
+select
+ObjectInstanceName,LastGoodSampleTime,ROW_NUMBER()OVER(PARTITION BY OBJECTINSTANCENAME ORDER BY LASTGOODSAMPLETIME DESC) RN,
+isnull(sum(case when ObjectTypePropertyName ='Liquid Rate' then cast(cast(CurrentValue as varchar) as float) else 0.0 end),0)  liquidrate,
+sum(case when ObjectTypePropertyName ='Oil Rate' then cast(cast(CurrentValue as varchar) as float) else 0.0 end) oilrate,
+avg(case when ObjectTypePropertyName ='Water Cut' then cast(cast(CurrentValue as varchar) as float) else null end) watercut,
+sum(case when ObjectTypePropertyName ='Gas Rate' then cast(cast(CurrentValue as varchar) as float) else 0.0 end) gasrate,
+avg(case when ObjectTypePropertyName like 'Total Gas Oil Ratio' then cast(cast(CurrentValue as varchar) as float) else null end) gor,
+sum(case when ObjectTypePropertyName ='Wellhead Pressure' then cast(cast(CurrentValue as varchar) as float) else 0.0 end) whp,
+sum(case when ObjectTypePropertyName like 'Flowline % Pressure' then cast(cast(CurrentValue as varchar) as float) else 0.0 end) flp,
+sum(case when ObjectTypePropertyName ='Wellhead Temperature' then cast(cast(CurrentValue as varchar) as float) else 0.0 end) wht 
+ FROM [DSPStaging].[dbo].[vw_CurrentValues] 
+ WHERE DataSourceName ='Well Test - Prod GOR' and ObjectTypeName='WELL' and LastGoodSampleTime is not null 
+ group by ObjectInstanceName,LastGoodSampleTime
+ ) TT0
+ WHERE RN=1
+ ) TPRODUCT
+ ON TPRODUCT.WELLNAME=TALL.WELLNAME
+ LEFT JOIN
+  (
+ SELECT
+ ObjectInstanceName WELLNAME,CurrentValue PUMPNAME
+ FROM
+ (
+SELECT ObjectInstanceName, ObjectTypePropertyName,DataSourceName,Tagname,CurrentValue,
+row_number()over(partition by  ObjectInstanceName order by LastGoodSampleTime DESC) rn
+  FROM [DSPStaging].[dbo].[vw_CurrentValues]
+  where DataSourceName  = 'ALMS Active Installation'
+  AND ObjectTypePropertyName = 'Pump Name' 
+  ) T
+  WHERE RN=1
+  ) TPUMP
+  ON TPUMP.WELLNAME=TALL.WELLNAME
+  LEFT JOIN
+  (
+   SELECT
+ ObjectInstanceName WELLNAME,CurrentValue STAGES
+ FROM
+ (  SELECT ObjectInstanceName, ObjectTypePropertyName,DataSourceName,Tagname,CurrentValue,
+row_number()over(partition by  ObjectInstanceName order by LastGoodSampleTime DESC) rn  FROM [DSPStaging].[dbo].[vw_CurrentValues]
+  where DataSourceName like 'ALMS Active Installation'
+  AND ObjectTypePropertyName = 'Pump Number of Stages'
+  ) Ts
+  WHERE RN=1
+  ) TSTAGES
+  ON TSTAGES.WELLNAME=TALL.WELLNAME</sql>
+    <limit>0</limit>
+    <lookup/>
+    <execute_each_row>N</execute_each_row>
+    <variables_active>N</variables_active>
+    <lazy_conversion_active>N</lazy_conversion_active>
+    <attributes/>
+    <cluster_schema/>
+    <remotesteps>
+      <input>
+      </input>
+      <output>
+      </output>
+    </remotesteps>
+    <GUI>
+      <xloc>144</xloc>
+      <yloc>80</yloc>
+      <draw>Y</draw>
+    </GUI>
+  </step>
   <step>
     <name>INPUT WORKFLOW TEST DATA</name>
     <type>InsertUpdate</type>
@@ -661,94 +749,6 @@
     <GUI>
       <xloc>496</xloc>
       <yloc>176</yloc>
-      <draw>Y</draw>
-    </GUI>
-  </step>
-  <step>
-    <name>FETCH WORKFLOW DATA</name>
-    <type>TableInput</type>
-    <description/>
-    <distribute>Y</distribute>
-    <custom_distribution/>
-    <copies>1</copies>
-    <partitioning>
-      <method>none</method>
-      <schema_name/>
-    </partitioning>
-    <connection>DSPStaging</connection>
-    <sql>SELECT
-getdate() inputdate,TALL.WELLNAME,liquidrate,oilrate,watercut,gasrate,GOR,WHP,FLP,WHT,PUMPNAME,STAGES
-FROM
-(select ObjectInstanceName WELLNAME from [DSPStaging].[dbo].[vw_CurrentValues]  where   DataSourceName  IN('Well Test - Prod GOR','ALMS Active Installation')
-GROUP BY ObjectInstanceName)
-TALL
-LEFT JOIN
-(
-SELECT
-ObjectInstanceName WELLNAME,liquidrate,oilrate,watercut,gasrate,GOR,WHP,FLP,WHT
-FROM
-(
-select
-ObjectInstanceName,LastGoodSampleTime,ROW_NUMBER()OVER(PARTITION BY OBJECTINSTANCENAME ORDER BY LASTGOODSAMPLETIME DESC) RN,
-isnull(sum(case when ObjectTypePropertyName ='Liquid Rate' then cast(cast(CurrentValue as varchar) as float) else 0.0 end),0)  liquidrate,
-sum(case when ObjectTypePropertyName ='Oil Rate' then cast(cast(CurrentValue as varchar) as float) else 0.0 end) oilrate,
-avg(case when ObjectTypePropertyName ='Water Cut' then cast(cast(CurrentValue as varchar) as float) else null end) watercut,
-sum(case when ObjectTypePropertyName ='Gas Rate' then cast(cast(CurrentValue as varchar) as float) else 0.0 end) gasrate,
-avg(case when ObjectTypePropertyName like 'GOR%' then cast(cast(CurrentValue as varchar) as float) else null end) gor,
-sum(case when ObjectTypePropertyName ='Wellhead Pressure' then cast(cast(CurrentValue as varchar) as float) else 0.0 end) whp,
-sum(case when ObjectTypePropertyName like 'Flowline % Pressure' then cast(cast(CurrentValue as varchar) as float) else 0.0 end) flp,
-sum(case when ObjectTypePropertyName ='Wellhead Temperature' then cast(cast(CurrentValue as varchar) as float) else 0.0 end) wht 
- FROM [DSPStaging].[dbo].[vw_CurrentValues] 
- WHERE DataSourceName ='Well Test - Prod GOR' and ObjectTypeName='WELL' and LastGoodSampleTime is not null 
- group by ObjectInstanceName,LastGoodSampleTime
- ) TT0
- WHERE RN=1
- ) TPRODUCT
- ON TPRODUCT.WELLNAME=TALL.WELLNAME
- LEFT JOIN
-  (
- SELECT
- ObjectInstanceName WELLNAME,CurrentValue PUMPNAME
- FROM
- (
-SELECT ObjectInstanceName, ObjectTypePropertyName,DataSourceName,Tagname,CurrentValue,
-row_number()over(partition by  ObjectInstanceName order by LastGoodSampleTime DESC) rn
-  FROM [DSPStaging].[dbo].[vw_CurrentValues]
-  where DataSourceName  = 'ALMS Active Installation'
-  AND ObjectTypePropertyName = 'Pump Name' 
-  ) T
-  WHERE RN=1
-  ) TPUMP
-  ON TPUMP.WELLNAME=TALL.WELLNAME
-  LEFT JOIN
-  (
-   SELECT
- ObjectInstanceName WELLNAME,CurrentValue STAGES
- FROM
- (  SELECT ObjectInstanceName, ObjectTypePropertyName,DataSourceName,Tagname,CurrentValue,
-row_number()over(partition by  ObjectInstanceName order by LastGoodSampleTime DESC) rn  FROM [DSPStaging].[dbo].[vw_CurrentValues]
-  where DataSourceName like 'ALMS Active Installation'
-  AND ObjectTypePropertyName = 'Pump Number of Stages'
-  ) Ts
-  WHERE RN=1
-  ) TSTAGES
-  ON TSTAGES.WELLNAME=TALL.WELLNAME</sql>
-    <limit>0</limit>
-    <lookup/>
-    <execute_each_row>N</execute_each_row>
-    <variables_active>N</variables_active>
-    <lazy_conversion_active>N</lazy_conversion_active>
-    <attributes/>
-    <cluster_schema/>
-    <remotesteps>
-      <input>
-      </input>
-      <output>
-      </output>
-    </remotesteps>
-    <GUI>
-      <xloc>144</xloc>
-      <yloc>80</yloc>
       <draw>Y</draw>
     </GUI>
   </step>

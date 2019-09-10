@@ -73,13 +73,13 @@
   </connection>
   <connection>
     <name>DSPStore</name>
-    <server>127.0.0.1</server>
+    <server>192.168.1.51</server>
     <type>MSSQLNATIVE</type>
     <access>Native</access>
     <database>DSPStore</database>
     <port>1433</port>
     <username>sa</username>
-    <password>Encrypted 2be98afc86aa7f2e4cb79ce10bef2bcdb</password>
+    <password>Encrypted 2be98afc86aa7f2a8aa17aa7ddf80a48b</password>
     <servername/>
     <data_tablespace/>
     <index_tablespace/>
@@ -501,7 +501,7 @@ where v.PetexName=t.wellname</sql>
       <draw>Y</draw>
       <nr>0</nr>
       <xloc>928</xloc>
-      <yloc>224</yloc>
+      <yloc>208</yloc>
       <attributes_kjc/>
     </entry>
     <entry>
